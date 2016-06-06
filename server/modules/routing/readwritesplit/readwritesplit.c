@@ -1472,61 +1472,7 @@ static route_target_t get_route_target(ROUTER_CLIENT_SES *rses,
 		{
 			target = TARGET_MASTER;
 		}
-		/** process routing hints */
-		while (hint != NULL)
-		{
-			if (hint->type == HINT_ROUTE_TO_MASTER)
-			{
-				target = TARGET_MASTER; /*< override */
-				MXS_DEBUG("%lu [get_route_target] Hint: route to master.",
-                                          pthread_self());
-				break;
-			}
-			else if (hint->type == HINT_ROUTE_TO_NAMED_SERVER)
-			{
-				/**
-				 * Searching for a named server. If it can't be
-				 * found, the oroginal target is chosen.
-				 */
-				target |= TARGET_NAMED_SERVER;
-				MXS_DEBUG("%lu [get_route_target] Hint: route to "
-                                          "named server : ",
-                                          pthread_self());
-			}
-			else if (hint->type == HINT_ROUTE_TO_UPTODATE_SERVER)
-			{
-				/** not implemented */
-			}
-			else if (hint->type == HINT_ROUTE_TO_ALL)
-			{
-				/** not implemented */
-			}
-			else if (hint->type == HINT_PARAMETER)
-			{
-				if (strncasecmp(
-					(char *)hint->data,
-						"max_slave_replication_lag",
-						strlen("max_slave_replication_lag")) == 0)
-				{
-					target |= TARGET_RLAG_MAX;
-				}
-				else
-				{
-                                    MXS_ERROR("Unknown hint parameter "
-                                              "'%s' when 'max_slave_replication_lag' "
-                                              "was expected.",
-                                              (char *)hint->data);
-				}
-			}
-			else if (hint->type == HINT_ROUTE_TO_SLAVE)
-			{
-				target = TARGET_SLAVE;
-				MXS_DEBUG("%lu [get_route_target] Hint: route to "
-                                          "slave.",
-                                          pthread_self());
-			}
-			hint = hint->next;
-		} /*< while (hint != NULL) */
+
 		/** If nothing matches then choose the master */
 		if ((target & (TARGET_ALL|TARGET_SLAVE|TARGET_MASTER)) == 0)
 		{
@@ -1559,6 +1505,63 @@ static route_target_t get_route_target(ROUTER_CLIENT_SES *rses,
 			QUERY_IS_TYPE(qtype, QUERY_TYPE_UNKNOWN)));
 		target = TARGET_MASTER;
 	}
+
+    /** process routing hints */
+    while (hint != NULL)
+    {
+        if (hint->type == HINT_ROUTE_TO_MASTER)
+        {
+            target = TARGET_MASTER; /*< override */
+            MXS_DEBUG("%lu [get_route_target] Hint: route to master.",
+                      pthread_self());
+            break;
+        }
+        else if (hint->type == HINT_ROUTE_TO_NAMED_SERVER)
+        {
+            /**
+             * Searching for a named server. If it can't be
+             * found, the oroginal target is chosen.
+             */
+            target |= TARGET_NAMED_SERVER;
+            MXS_DEBUG("%lu [get_route_target] Hint: route to "
+                      "named server : ",
+                      pthread_self());
+        }
+        else if (hint->type == HINT_ROUTE_TO_UPTODATE_SERVER)
+        {
+            /** not implemented */
+        }
+        else if (hint->type == HINT_ROUTE_TO_ALL)
+        {
+            /** not implemented */
+        }
+        else if (hint->type == HINT_PARAMETER)
+        {
+            if (strncasecmp(
+                            (char *)hint->data,
+                            "max_slave_replication_lag",
+                            strlen("max_slave_replication_lag")) == 0)
+            {
+                target |= TARGET_RLAG_MAX;
+            }
+            else
+            {
+                MXS_ERROR("Unknown hint parameter "
+                          "'%s' when 'max_slave_replication_lag' "
+                          "was expected.",
+                          (char *)hint->data);
+            }
+        }
+        else if (hint->type == HINT_ROUTE_TO_SLAVE)
+        {
+            target = TARGET_SLAVE;
+            MXS_DEBUG("%lu [get_route_target] Hint: route to "
+                      "slave.",
+                      pthread_self());
+        }
+        hint = hint->next;
+    } /*< while (hint != NULL) */
+
 #if defined(SS_EXTRA_DEBUG)
         MXS_INFO("Selected target \"%s\"", STRTARGET(target));
 #endif
